@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: notification-engine
+  datasource:
+    url: jdbc:postgresql://localhost:5432/notification_engine
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: update
