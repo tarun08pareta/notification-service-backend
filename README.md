@@ -39,20 +39,47 @@ This project demonstrates the seamless integration of a reactive frontend built 
 
 ```text
 centralized-notification-system/
-│
-├── notification-backend/            # Spring Boot 4.x Application
-│   ├── src/main/java/com/project/
-│   │   ├── controllers/            # REST Endpoints
-│   │   ├── services/               # Core Logic, Async Threads, & Rate Limiting
-│   │   ├── models/                 # JPA Entities
-│   │   └── dtos/                   # Secure Data Transfer Objects
-│   └── pom.xml
-│
-└── notification-frontend/           # Angular Application
-    ├── src/app/
-    │   ├── components/             # Dashboard Layouts & Analytic Logs
-    │   └── services/               # Reactive HTTP Services with Interceptors
-    └── package.json
+backend/
+└── notification-engine/
+    └── src/
+        ├── main/
+        │   ├── java/com/notificationengine/
+        │   │
+        │   │   ├── NotificationEngineApplication
+        │   │   │
+        │   │   ├── config/
+        │   │   │
+        │   │   ├── security/
+        │   │   │
+        │   │   ├── common/
+        │   │   │
+        │   │   ├── client/
+        │   │   │   ├── controller/
+        │   │   │   ├── service/
+        │   │   │   ├── repository/
+        │   │   │   ├── entity/
+        │   │   │   ├── dto/
+        │   │   │   └── mapper/
+        │   │   │
+        │   │   ├── notification/
+        │   │   ├── template/
+        │   │   ├── delivery/
+        │   │   ├── provider/
+        │   │   ├── ratelimit/
+        │   │   ├── apikey/
+        │   │   ├── billing/
+        │   │   └── audit/
+        │   │
+        │   └── resources/
+        │       ├── db/
+        │       │   └── migration/
+        │       ├── application.yml
+        │       ├── application-dev.yml
+        │       ├── application-test.yml
+        │       └── application-prod.yml
+        │
+        └── test/
+            └── java/com/notificationengine/
 ```
 
 ---
