@@ -4,12 +4,15 @@ import com.notificationengine.client.domain.Client;
 import com.notificationengine.client.domain.ClientStatus;
 import com.notificationengine.client.dto.ClientResponse;
 import com.notificationengine.client.dto.CreateClientRequest;
+import com.notificationengine.client.dto.UpdateClientRequest;
+import com.notificationengine.client.exception.ClientNotFoundException;
 import com.notificationengine.client.mapper.ClientMapper;
 import com.notificationengine.client.repository.ClientRepository;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
 
 import java.net.CacheRequest;
+import java.util.UUID;
 
 @Service
 public class ClientService {
@@ -32,5 +35,31 @@ public class ClientService {
         client.setStatus(ClientStatus.ACTIVE);
         ClientResponse response = clientMapper.toResponse(clientRepository.save(client));
         return response;
+    }
+
+    public ClientResponse clientGetById(UUID id){
+        ClientResponse response = clientRepository.findById(id).map(clientMapper::toResponse)
+                .orElseThrow(() -> new ClientNotFoundException("client not found"+id));
+        return response;
+
+    }
+
+    public ClientResponse updateClient(UUID id , UpdateClientRequest request){
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new ClientNotFoundException("Client not found with id: " + id));
+
+        if(request.getName() !=null ){
+            client.setName(request.getName());
+        }
+        if (request.getSlug() != null) {
+            client.setSlug(request.getSlug());
+        }
+
+        if (request.getEmail() != null) {
+            client.setEmail(request.getEmail());
+        }
+        Client updatedClient = clientRepository.save(client);
+        return clientMapper.toResponse(updatedClient);
+
     }
 }
