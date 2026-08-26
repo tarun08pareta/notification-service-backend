@@ -1,0 +1,58 @@
+package com.notificationengine.notification.domain;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+
+@NoArgsConstructor
+@Setter
+@Getter
+@Entity
+@Table(name = "notifications")
+public class Notification {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private NotificationChannel channel;
+
+    @Column(nullable = false, length = 320)
+    private String recipient;
+
+    @Column(nullable = false, length = 100)
+    private String template;
+
+    @Column(columnDefinition = "jsonb")
+    private Map<String, String> variables;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private NotificationStatus status;
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        Instant now = Instant.now();
+        createdAt = now;
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = Instant.now();
+    }
+}
