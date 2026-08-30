@@ -2,6 +2,7 @@ package com.notificationengine.notification.provider.email;
 
 import com.notificationengine.notification.domain.Notification;
 import com.notificationengine.notification.provider.NotificationProvider;
+import com.notificationengine.notification.provider.ProviderResult;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -12,8 +13,17 @@ public class MailpitEmailProvider implements NotificationProvider {
         return notification.getChannel().name().equals("EMAIL");
     }
     @Override
-    public void send(Notification notification) {
+    public ProviderResult send(Notification notification) {
 
         // Mailpit integration will be implemented next.
+
+        return ProviderResult.success(
+                "dev-mail-" + notification.getId()
+        );
+    }
+
+    @Override
+    public String name() {
+        return "mailpit-email";
     }
 }

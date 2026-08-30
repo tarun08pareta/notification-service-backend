@@ -3,6 +3,12 @@ package com.notificationengine.notification.provider;
 import com.notificationengine.notification.domain.Notification;
 
 public interface NotificationProvider {
-    boolean support (Notification notification);
-    void send(Notification notification);
+    String name();
+
+    boolean support(Notification notification);
+
+//    int priority();
+
+    ProviderResult send(Notification notification);
+
 }

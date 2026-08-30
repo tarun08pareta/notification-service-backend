@@ -2,6 +2,7 @@ package com.notificationengine.notification.provider.sms;
 
 import com.notificationengine.notification.domain.Notification;
 import com.notificationengine.notification.provider.NotificationProvider;
+import com.notificationengine.notification.provider.ProviderResult;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,8 +14,16 @@ public class MockSmsProvider implements NotificationProvider {
     }
 
     @Override
-    public void send(Notification notification) {
+    public ProviderResult send(Notification notification) {
 
-        // Mock SMS delivery will be implemented next.
+        // Mock SMS implementation will be implemented next.
+
+        return ProviderResult.success(
+                "mock-sms-" + notification.getId()
+        );
+    }
+    @Override
+    public String name() {
+        return "mock-sms";
     }
 }
