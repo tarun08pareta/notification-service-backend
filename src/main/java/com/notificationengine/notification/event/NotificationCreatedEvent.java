@@ -1,4 +1,6 @@
 package com.notificationengine.notification.event;
 
-public record NotificationCreatedEvent() {
+import java.util.UUID;
+
+public record NotificationCreatedEvent(UUID notificationId) {
 }

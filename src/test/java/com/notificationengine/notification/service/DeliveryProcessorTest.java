@@ -8,6 +8,7 @@ import com.notificationengine.notification.provider.ProviderResult;
 import com.notificationengine.notification.provider.ProviderRouter;
 import com.notificationengine.notification.repository.DeliveryAttemptRepository;
 import com.notificationengine.notification.repository.NotificationRepository;
+import com.notificationengine.notification.retry.RetryPolicy;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -21,12 +22,13 @@ public class DeliveryProcessorTest {
             mock(DeliveryAttemptRepository.class);
     private final NotificationRepository notificationRepository =
             mock(NotificationRepository.class);
-
+    private final RetryPolicy retryPolicy = mock(RetryPolicy.class);
     private final DeliveryProcessor deliveryProcessor =
             new DeliveryProcessor(
                     providerRouter,
                     deliveryAttemptRepository,
-                    notificationRepository
+                    notificationRepository,
+                    retryPolicy
             );
 
     @Test
