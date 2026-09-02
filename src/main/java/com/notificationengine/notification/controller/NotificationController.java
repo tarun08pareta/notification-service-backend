@@ -8,10 +8,7 @@ import com.notificationengine.security.AuthenticatedUserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -35,11 +32,13 @@ public class NotificationController {
 
     @PostMapping
     public ResponseEntity<Notification> createNotification(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody NotificationRequest request
     ) {
 //        UUID userId = UUID.randomUUID();  // modify this
         UUID userId = authenticatedUserService.getCurrentUser().getId();
-        Notification notification = notificationService.createNotification(request, userId);
+        Notification notification = notificationService.createNotification(request, userId,
+                idempotencyKey);
         return ResponseEntity
                 .status(HttpStatus.ACCEPTED)
                 .body(notification);

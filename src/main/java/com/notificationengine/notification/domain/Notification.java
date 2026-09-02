@@ -8,6 +8,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 
@@ -58,4 +59,16 @@ public class Notification {
     protected void onUpdate() {
         updatedAt = Instant.now();
     }
+
+    // NEW CLUMN ADD
+    @Column(name = "retry_count", nullable = false)
+    private Integer retryCount = 0;
+
+    @Column(name = "next_retry_at")
+    private OffsetDateTime nextRetryAt;
+
+    //one more new column
+    @Column(name = "idempotency_key", length = 255)
+    private String idempotencyKey;
+
 }

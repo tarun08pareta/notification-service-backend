@@ -7,22 +7,26 @@ import java.time.Duration;
 
 @Component
 public class RetryPolicy {
-    private static final int MAX_RETRIES =3;
-    private static final Duration INITIAL_DELAY=
-            Duration.ofSeconds(1);
+    private final RetryProperties properties;
+
+    public RetryPolicy(RetryProperties properties) {
+        this.properties = properties;
+    }
+
 
     public boolean shouldRetry(
             ProviderFailureType failureType,
             int retryNumber
     ){
         return failureType == ProviderFailureType.TRANSIENT
-                && retryNumber <= MAX_RETRIES;
+                && retryNumber <= properties.getMaxRetries();
     }
 
     public Duration getDelay(int retryNumber) {
 
-        return INITIAL_DELAY.multipliedBy(
-                1L << (retryNumber - 1)
+        return Duration.ofMillis(
+                properties.getInitialDelayMs()*
+               ( 1L << (retryNumber - 1))
         );
     }
 }

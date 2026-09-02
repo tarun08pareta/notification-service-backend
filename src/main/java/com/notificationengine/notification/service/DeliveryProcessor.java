@@ -11,13 +11,14 @@ import com.notificationengine.notification.provider.ProviderRouter;
 import com.notificationengine.notification.repository.DeliveryAttemptRepository;
 import com.notificationengine.notification.repository.NotificationRepository;
 import com.notificationengine.notification.retry.RetryPolicy;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 
+@Slf4j
 @Service
 public class DeliveryProcessor {
 
@@ -38,7 +39,6 @@ public class DeliveryProcessor {
         this.retryPolicy = retryPolicy;
     }
 
-    @Transactional
     public void process(Notification notification) {
 
         notification.setStatus(NotificationStatus.PROCESSING);
@@ -48,96 +48,301 @@ public class DeliveryProcessor {
                 providerRouter.route(notification);
 
         if (providers.isEmpty()) {
-            notification.setStatus(NotificationStatus.FAILED);
-            notificationRepository.save(notification);
+            markFailed(notification, "NO_PROVIDER", "No eligible provider found");
             return;
         }
 
-        int attemptNumber = 1;
+        Optional<DeliveryAttempt> latestAttempt =
+                deliveryAttemptRepository
+                        .findTopByNotificationIdOrderByAttemptNumberDesc(
+                                notification.getId()
+                        );
 
-        for (NotificationProvider provider : providers) {
+        NotificationProvider provider =
+                selectProvider(providers, latestAttempt);
 
-            int retryNumber = 0;
+        processSingleAttempt(notification, provider,providers);
+    }
 
-            while (true) {
+    private NotificationProvider selectProvider(
+            List<NotificationProvider> providers,
+            Optional<DeliveryAttempt> latestAttempt
+    ) {
+        if (latestAttempt.isEmpty()) {
+            return providers.get(0);
+        }
 
-                DeliveryAttempt attempt = new DeliveryAttempt();
+        String lastProvider = latestAttempt.get().getProvider();
 
-                attempt.setNotification(notification);
-                attempt.setProvider(provider.name());
-                attempt.setAttemptNumber(attemptNumber++);
-                attempt.setStatus(DeliveryAttemptStatus.PROCESSING);
-                attempt.setStartedAt(OffsetDateTime.now());
+        return providers.stream()
+                .filter(provider -> provider.name().equals(lastProvider))
+                .findFirst()
+                .orElse(providers.get(0));
+    }
 
-                deliveryAttemptRepository.save(attempt);
+    private void processSingleAttempt(
+            Notification notification,
+            NotificationProvider provider,
+            List<NotificationProvider> providers
+    ) {
 
-                ProviderResult result = provider.send(notification);
+        int attemptNumber =
+                deliveryAttemptRepository
+                        .findTopByNotificationIdOrderByAttemptNumberDesc(
+                                notification.getId()
+                        )
+                        .map(attempt -> attempt.getAttemptNumber() + 1)
+                        .orElse(1);
 
-                attempt.setCompletedAt(OffsetDateTime.now());
+        DeliveryAttempt attempt = new DeliveryAttempt();
+        attempt.setNotification(notification);
+        attempt.setProvider(provider.name());
+        attempt.setAttemptNumber(attemptNumber);
+        attempt.setStatus(DeliveryAttemptStatus.PROCESSING);
+        attempt.setStartedAt(OffsetDateTime.now());
 
-                if (result.success()) {
+        attempt = deliveryAttemptRepository.save(attempt);
 
-                    attempt.setStatus(DeliveryAttemptStatus.SUCCESS);
-                    attempt.setProviderMessageId(
-                            result.providerMessageId()
-                    );
+        ProviderResult result;
 
-                    deliveryAttemptRepository.save(attempt);
+        try {
+            result = provider.send(notification);
+        } catch (Exception ex) {
+            result = ProviderResult.transientFailure(
+                    "PROVIDER_EXCEPTION",
+                    ex.getMessage()
+            );
+        }
 
-                    notification.setStatus(NotificationStatus.SENT);
-                    notificationRepository.save(notification);
+        attempt.setCompletedAt(OffsetDateTime.now());
 
-                    return;
-                }
+        if (result.success()) {
+            handleSuccess(notification, attempt, result);
+            return;
+        }
 
-                attempt.setStatus(DeliveryAttemptStatus.FAILED);
-                attempt.setErrorCode(result.errorCode());
-                attempt.setErrorMessage(result.errorMessage());
+        handleFailure(
+                notification,
+                attempt,
+                provider,
+                result,
+                providers
+        );
+    }
 
-                deliveryAttemptRepository.save(attempt);
+    private void handleSuccess(
+            Notification notification,
+            DeliveryAttempt attempt,
+            ProviderResult result
+    ) {
 
-                if (result.failureType() ==
-                        ProviderFailureType.PERMANENT) {
+        attempt.setStatus(DeliveryAttemptStatus.SUCCESS);
+        attempt.setProviderMessageId(result.providerMessageId());
 
-                    notification.setStatus(
-                            NotificationStatus.FAILED
-                    );
+        deliveryAttemptRepository.save(attempt);
 
-                    notificationRepository.save(notification);
+        notification.setStatus(NotificationStatus.SENT);
+        notification.setRetryCount(0);
+        notification.setNextRetryAt(null);
 
-                    return;
-                }
+        notificationRepository.save(notification);
 
-                retryNumber++;
+        log.info(
+                "Notification {} delivered successfully using provider {}",
+                notification.getId(),
+                attempt.getProvider()
+        );
+    }
 
-                if (!retryPolicy.shouldRetry(
-                        result.failureType(),
-                        retryNumber
-                )) {
-                    break;
-                }
+    private void handleFailure(
+            Notification notification,
+            DeliveryAttempt attempt,
+            NotificationProvider provider,
+            ProviderResult result,
+            List<NotificationProvider> providers
+    ) {
 
-                Duration delay =
-                        retryPolicy.getDelay(retryNumber);
+        attempt.setStatus(DeliveryAttemptStatus.FAILED);
+        attempt.setErrorCode(result.errorCode());
+        attempt.setErrorMessage(result.errorMessage());
 
-                try {
-                    Thread.sleep(delay.toMillis());
-                } catch (InterruptedException exception) {
+        deliveryAttemptRepository.save(attempt);
 
-                    Thread.currentThread().interrupt();
+        if (result.failureType() == ProviderFailureType.PERMANENT) {
+            markFailed(
+                    notification,
+                    result.errorCode(),
+                    result.errorMessage()
+            );
+            return;
+        }
 
-                    notification.setStatus(
-                            NotificationStatus.FAILED
-                    );
+        handleTransientFailure(
+                notification,
+                provider,
+                providers
+        );
+//        scheduleRetry(
+//                notification,
+//                result.failureType()
+//        );
+    }
+    private void handleTransientFailure(
+            Notification notification,
+            NotificationProvider currentProvider,
+            List<NotificationProvider> providers
+    ) {
 
-                    notificationRepository.save(notification);
+        int nextRetryNumber = notification.getRetryCount() + 1;
 
-                    return;
-                }
+        if (retryPolicy.shouldRetry(
+                ProviderFailureType.TRANSIENT,
+                nextRetryNumber
+        )) {
+
+            notification.setRetryCount(nextRetryNumber);
+
+            notification.setNextRetryAt(
+                    OffsetDateTime.now()
+                            .plus(retryPolicy.getDelay(nextRetryNumber))
+            );
+
+            notification.setStatus(NotificationStatus.RETRY_SCHEDULED);
+
+            notificationRepository.save(notification);
+
+            log.info(
+                    "Notification {} scheduled for retry #{} using provider {} at {}",
+                    notification.getId(),
+                    nextRetryNumber,
+                    currentProvider.name(),
+                    notification.getNextRetryAt()
+            );
+
+            return;
+        }
+
+        Optional<NotificationProvider> nextProvider =
+                getNextProvider(
+                        providers,
+                        currentProvider.name()
+                );
+
+        if (nextProvider.isEmpty()) {
+
+            markFailed(
+                    notification,
+                    "ALL_PROVIDERS_FAILED",
+                    "All eligible providers failed after retry exhaustion"
+            );
+
+            return;
+        }
+
+        notification.setRetryCount(0);
+        notification.setNextRetryAt(null);
+        notification.setStatus(NotificationStatus.PROCESSING);
+
+        notificationRepository.save(notification);
+
+        log.info(
+                "Retry exhausted for provider {}. Falling back to provider {} for notification {}",
+                currentProvider.name(),
+                nextProvider.get().name(),
+                notification.getId()
+        );
+
+        processSingleAttempt(
+                notification,
+                nextProvider.get(),
+                providers
+        );
+    }
+
+    private void scheduleRetry(
+            Notification notification,
+            ProviderFailureType failureType
+    ) {
+
+        int nextRetryNumber = notification.getRetryCount() + 1;
+
+        if (!retryPolicy.shouldRetry(failureType, nextRetryNumber)) {
+            markFailed(
+                    notification,
+                    "RETRY_EXHAUSTED",
+                    "Maximum retry attempts exhausted"
+            );
+            return;
+        }
+
+        notification.setRetryCount(nextRetryNumber);
+
+        notification.setNextRetryAt(
+                OffsetDateTime.now()
+                        .plus(retryPolicy.getDelay(nextRetryNumber))
+        );
+
+        notification.setStatus(NotificationStatus.RETRY_SCHEDULED);
+
+        notificationRepository.save(notification);
+
+        log.info(
+                "Notification {} scheduled for retry #{} at {}",
+                notification.getId(),
+                nextRetryNumber,
+                notification.getNextRetryAt()
+        );
+    }
+
+    private void markFailed(
+            Notification notification,
+            String errorCode,
+            String errorMessage
+    ) {
+
+        notification.setStatus(NotificationStatus.FAILED);
+        notification.setNextRetryAt(null);
+
+        notificationRepository.save(notification);
+
+        log.error(
+                "Notification {} failed. errorCode={}, errorMessage={}",
+                notification.getId(),
+                errorCode,
+                errorMessage
+        );
+    }
+    private int findProviderIndex(
+            List<NotificationProvider> providers,
+            String providerName
+    ) {
+        for (int i = 0; i < providers.size(); i++) {
+            if (providers.get(i).name().equals(providerName)) {
+                return i;
             }
         }
 
-        notification.setStatus(NotificationStatus.FAILED);
-        notificationRepository.save(notification);
+        return -1;
     }
+
+    private Optional<NotificationProvider> getNextProvider(
+            List<NotificationProvider> providers,
+            String currentProvider
+    ) {
+        int currentIndex = findProviderIndex(
+                providers,
+                currentProvider
+        );
+
+        if (currentIndex >= 0
+                && currentIndex + 1 < providers.size()) {
+
+            return Optional.of(
+                    providers.get(currentIndex + 1)
+            );
+        }
+
+        return Optional.empty();
+    }
+
 }
