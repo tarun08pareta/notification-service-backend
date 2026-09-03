@@ -1,6 +1,7 @@
 package com.notificationengine.notification.dto;
 
 import com.notificationengine.notification.domain.NotificationChannel;
+import com.notificationengine.notification.validation.ValidChannelRecipient;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -10,7 +11,7 @@ import lombok.Setter;
 import java.util.Map;
 @Getter
 @Setter
-@NoArgsConstructor
+@ValidChannelRecipient
 public class NotificationRequest {
 
     @NotNull

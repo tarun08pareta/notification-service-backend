@@ -7,6 +7,7 @@ import com.notificationengine.notification.service.DeliveryProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -26,6 +27,7 @@ public class RetryScheduler {
     }
 
     @Scheduled(fixedDelay = 5000)
+    @Transactional
     public void processDueRetries(){
         OffsetDateTime now = OffsetDateTime.now();
         List<Notification> notifications = notificationRepository.findByStatusAndNextRetryAtLessThanEqual(

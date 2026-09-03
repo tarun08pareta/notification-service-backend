@@ -37,4 +37,10 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
             String idempotencyKey
     );
 
+    Optional<Notification> findByIdAndUserId(
+            UUID id,
+            UUID userId
+    );
+
+
 }

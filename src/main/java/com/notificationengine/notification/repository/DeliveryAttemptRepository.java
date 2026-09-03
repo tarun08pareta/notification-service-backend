@@ -12,6 +12,9 @@ public interface DeliveryAttemptRepository extends JpaRepository<DeliveryAttempt
     List<DeliveryAttempt> findByNotificationIdOrderByAttemptNumberAsc(
             UUID notificationId
     );
+    Optional<DeliveryAttempt> findTopByNotificationIdOrderByAttemptNumberAsc(
+            UUID notificationId
+    );
     Optional<DeliveryAttempt> findTopByNotificationIdOrderByAttemptNumberDesc(
             UUID notificationId
     );

@@ -18,6 +18,8 @@ public class NotificationProviderProperties {
     @Getter
     @Setter
     public static  class ProviderConfig{
+        private boolean enabled = true;
         private int priority;
+
     }
 }

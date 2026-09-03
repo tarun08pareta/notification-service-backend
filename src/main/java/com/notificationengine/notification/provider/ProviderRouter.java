@@ -23,6 +23,7 @@ public class ProviderRouter {
     public List<NotificationProvider> route(Notification notification) {
 
         return providers.stream()
+                .filter(provider -> isEnabled(provider))
                 .filter(provider -> provider.support(notification))
                 .sorted(
                         Comparator.comparingInt(
@@ -37,7 +38,19 @@ public class ProviderRouter {
 //                        )
 //                );
     }
+    private boolean isEnabled(NotificationProvider provider) {
+        NotificationProviderProperties.ProviderConfig config =
+                properties.getProviders().get(provider.name());
 
+        if (config == null) {
+            throw new IllegalStateException(
+                    "No configuration found for provider: "
+                            + provider.name()
+            );
+        }
+
+        return config.isEnabled();
+    }
     private int getPriority(NotificationProvider provider) {
         NotificationProviderProperties.ProviderConfig config =
                 properties.getProviders().get(provider.name());
