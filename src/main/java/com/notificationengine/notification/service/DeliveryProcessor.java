@@ -11,6 +11,8 @@ import com.notificationengine.notification.provider.ProviderRouter;
 import com.notificationengine.notification.repository.DeliveryAttemptRepository;
 import com.notificationengine.notification.repository.NotificationRepository;
 import com.notificationengine.notification.retry.RetryPolicy;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -26,17 +28,20 @@ public class DeliveryProcessor {
     private final DeliveryAttemptRepository deliveryAttemptRepository;
     private final NotificationRepository notificationRepository;
     private final RetryPolicy retryPolicy;
+    private final MeterRegistry meterRegistry;
 
     public DeliveryProcessor(
             ProviderRouter providerRouter,
             DeliveryAttemptRepository deliveryAttemptRepository,
             NotificationRepository notificationRepository,
-            RetryPolicy retryPolicy
+            RetryPolicy retryPolicy,
+            MeterRegistry meterRegistry
     ) {
         this.providerRouter = providerRouter;
         this.deliveryAttemptRepository = deliveryAttemptRepository;
         this.notificationRepository = notificationRepository;
         this.retryPolicy = retryPolicy;
+        this.meterRegistry = meterRegistry;
     }
 
     public void process(Notification notification) {
@@ -61,7 +66,7 @@ public class DeliveryProcessor {
         NotificationProvider provider =
                 selectProvider(providers, latestAttempt);
 
-        processSingleAttempt(notification, provider,providers);
+        processSingleAttempt(notification, provider, providers);
     }
 
     private NotificationProvider selectProvider(
@@ -93,6 +98,7 @@ public class DeliveryProcessor {
                         )
                         .map(attempt -> attempt.getAttemptNumber() + 1)
                         .orElse(1);
+        Timer.Sample timerSample = Timer.start(meterRegistry);  //Phir provider send ke baad timer stop karo.
 
         DeliveryAttempt attempt = new DeliveryAttempt();
         attempt.setNotification(notification);
@@ -113,6 +119,13 @@ public class DeliveryProcessor {
                     ex.getMessage()
             );
         }
+
+        timerSample.stop(
+                Timer.builder("notification.delivery.duration")
+                        .description("Time taken by a provider delivery attempt")
+                        .tag("provider", provider.name())
+                        .register(meterRegistry)
+        );
 
         attempt.setCompletedAt(OffsetDateTime.now());
 
@@ -146,6 +159,7 @@ public class DeliveryProcessor {
         notification.setNextRetryAt(null);
 
         notificationRepository.save(notification);
+        meterRegistry.counter("notification.sent").increment();
 
         log.info(
                 "Notification {} delivered successfully using provider {}",
@@ -167,7 +181,11 @@ public class DeliveryProcessor {
         attempt.setErrorMessage(result.errorMessage());
 
         deliveryAttemptRepository.save(attempt);
-
+        meterRegistry.counter(
+                "provider.failure",
+                "provider", provider.name(),
+                "failure_type", result.failureType().name()
+        ).increment();
         if (result.failureType() == ProviderFailureType.PERMANENT) {
             markFailed(
                     notification,
@@ -187,6 +205,7 @@ public class DeliveryProcessor {
 //                result.failureType()
 //        );
     }
+
     private void handleTransientFailure(
             Notification notification,
             NotificationProvider currentProvider,
@@ -244,7 +263,7 @@ public class DeliveryProcessor {
         notification.setStatus(NotificationStatus.PROCESSING);
 
         notificationRepository.save(notification);
-
+        meterRegistry.counter("notification.retry").increment();
         log.info(
                 "Retry exhausted for provider {}. Falling back to provider {} for notification {}",
                 currentProvider.name(),
@@ -304,7 +323,7 @@ public class DeliveryProcessor {
         notification.setNextRetryAt(null);
 
         notificationRepository.save(notification);
-
+        meterRegistry.counter("notification.failed").increment();
         log.error(
                 "Notification {} failed. errorCode={}, errorMessage={}",
                 notification.getId(),
@@ -312,6 +331,7 @@ public class DeliveryProcessor {
                 errorMessage
         );
     }
+
     private int findProviderIndex(
             List<NotificationProvider> providers,
             String providerName

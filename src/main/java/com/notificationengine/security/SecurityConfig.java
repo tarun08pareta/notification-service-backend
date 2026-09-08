@@ -54,7 +54,8 @@ public class SecurityConfig {
                         // Signup must be accessible without login.
                         .requestMatchers("/api/v1/user",
                                 "/api/v1/auth/login").permitAll()
-
+                        .requestMatchers("/api/v1/admin/**")
+                        .hasRole("ADMIN")
                         // Everything else will require authentication for now.
                         .anyRequest().authenticated()
                 )
