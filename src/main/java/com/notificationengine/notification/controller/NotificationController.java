@@ -3,6 +3,7 @@ package com.notificationengine.notification.controller;
 import com.notificationengine.notification.domain.Notification;
 import com.notificationengine.notification.dto.NotificationRequest;
 import com.notificationengine.notification.mapper.NotificationMapper;
+import com.notificationengine.notification.service.DeliveryHistoryService;
 import com.notificationengine.notification.service.NotificationService;
 import com.notificationengine.security.AuthenticatedUserService;
 import jakarta.validation.Valid;
@@ -18,15 +19,18 @@ public class NotificationController {
     private final NotificationService notificationService;
     private final AuthenticatedUserService authenticatedUserService;
     private final NotificationMapper notificationMapper;
+    private final DeliveryHistoryService deliveryHistoryService;
 
     public NotificationController(
             NotificationService notificationService,
             AuthenticatedUserService authenticatedUserService,
-            NotificationMapper notificationMapper
+            NotificationMapper notificationMapper,
+            DeliveryHistoryService deliveryHistoryService
     ) {
         this.notificationService = notificationService;
         this.authenticatedUserService = authenticatedUserService;
         this.notificationMapper = notificationMapper;
+        this.deliveryHistoryService = deliveryHistoryService;
 
     }
 
@@ -42,5 +46,19 @@ public class NotificationController {
         return ResponseEntity
                 .status(HttpStatus.ACCEPTED)
                 .body(notification);
+    }
+
+    @GetMapping("/{notificationId}/attempts")
+    public ResponseEntity<?> getDeliveryAttempts(
+            @PathVariable UUID notificationId
+    ) {
+        UUID userId = authenticatedUserService.getCurrentUser().getId();
+        return ResponseEntity.ok(
+                deliveryHistoryService.getAttempts(
+                        notificationId,
+                        userId
+                )
+        );
+
     }
 }

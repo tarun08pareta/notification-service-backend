@@ -13,6 +13,7 @@ import java.util.UUID;
 public class DeliveryHistoryService {
     private final DeliveryAttemptRepository deliveryAttemptRepository;
     private final NotificationRepository notificationRepository;
+
     public DeliveryHistoryService(
             DeliveryAttemptRepository deliveryAttemptRepository,
             NotificationRepository notificationRepository) {
@@ -23,12 +24,12 @@ public class DeliveryHistoryService {
     public List<DeliveryAttemptResponse> getAttempts(
             UUID notificationId,
             UUID userId
-    ){
+    ) {
         notificationRepository.findByIdAndUserId(
-                notificationId,userId
-        ).orElseThrow(()->
+                notificationId, userId
+        ).orElseThrow(() ->
                 new IllegalStateException("Notification not found")
-                );
+        );
         return deliveryAttemptRepository
                 .findTopByNotificationIdOrderByAttemptNumberDesc(notificationId)
                 .stream()
@@ -38,17 +39,17 @@ public class DeliveryHistoryService {
 
     private DeliveryAttemptResponse toResponse(
             DeliveryAttempt attempt
-    ){
-      return new DeliveryAttemptResponse(
-              attempt.getId(),
-              attempt.getProvider(),
-              attempt.getAttemptNumber(),
-              attempt.getStatus(),
-              attempt.getErrorCode(),
-              attempt.getErrorMessage(),
-              attempt.getProviderMessageId(),
-              attempt.getStartedAt(),
-              attempt.getCompletedAt()
-      );
+    ) {
+        return new DeliveryAttemptResponse(
+                attempt.getId(),
+                attempt.getProvider(),
+                attempt.getAttemptNumber(),
+                attempt.getStatus(),
+                attempt.getErrorCode(),
+                attempt.getErrorMessage(),
+                attempt.getProviderMessageId(),
+                attempt.getStartedAt(),
+                attempt.getCompletedAt()
+        );
     }
 }
