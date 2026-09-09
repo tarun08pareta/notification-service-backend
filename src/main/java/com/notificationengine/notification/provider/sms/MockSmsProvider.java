@@ -1,10 +1,13 @@
 package com.notificationengine.notification.provider.sms;
 
 import com.notificationengine.notification.domain.Notification;
+import com.notificationengine.notification.domain.NotificationChannel;
 import com.notificationengine.notification.provider.NotificationProvider;
 import com.notificationengine.notification.provider.ProviderResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.Set;
 
 @Slf4j
 @Component
@@ -15,6 +18,10 @@ public class MockSmsProvider implements NotificationProvider {
         return notification.getChannel().name().equals("SMS");
     }
 
+    @Override
+    public Set<NotificationChannel> supportedChannels() {
+        return Set.of(NotificationChannel.SMS);
+    }
     @Override
     public ProviderResult send(Notification notification) {
 

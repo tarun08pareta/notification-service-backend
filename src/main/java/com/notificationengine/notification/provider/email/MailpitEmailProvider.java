@@ -1,6 +1,7 @@
 package com.notificationengine.notification.provider.email;
 
 import com.notificationengine.notification.domain.Notification;
+import com.notificationengine.notification.domain.NotificationChannel;
 import com.notificationengine.notification.provider.NotificationProvider;
 import com.notificationengine.notification.provider.ProviderResult;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,8 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
+
+import java.util.Set;
 
 @Slf4j
 @Component
@@ -17,6 +20,11 @@ public class MailpitEmailProvider implements NotificationProvider {
 
     public MailpitEmailProvider(JavaMailSender mailSender) {
         this.mailSender = mailSender;
+    }
+
+    @Override
+    public Set<NotificationChannel> supportedChannels() {
+        return Set.of(NotificationChannel.EMAIL);
     }
 
     @Override
