@@ -12,12 +12,15 @@ public class ProviderRouter {
 
     private final List<NotificationProvider> providers;
     private final NotificationProviderProperties properties;
+    private final ProviderStateResolver providerStateResolver;
 
     public ProviderRouter(
             List<NotificationProvider> providers,
-            NotificationProviderProperties properties) {
+            NotificationProviderProperties properties,
+            ProviderStateResolver providerStateResolver) {
         this.providers = providers;
         this.properties = properties;
+        this.providerStateResolver = providerStateResolver;
     }
 
     public List<NotificationProvider> route(Notification notification) {
@@ -39,17 +42,20 @@ public class ProviderRouter {
 //                );
     }
     private boolean isEnabled(NotificationProvider provider) {
-        NotificationProviderProperties.ProviderConfig config =
-                properties.getProviders().get(provider.name());
-
-        if (config == null) {
-            throw new IllegalStateException(
-                    "No configuration found for provider: "
-                            + provider.name()
-            );
-        }
-
-        return config.isEnabled();
+//        NotificationProviderProperties.ProviderConfig config =
+//                properties.getProviders().get(provider.name());
+//
+//        if (config == null) {
+//            throw new IllegalStateException(
+//                    "No configuration found for provider: "
+//                            + provider.name()
+//            );
+//        }
+//
+//        return config.isEnabled();
+        return providerStateResolver.isEnabled(
+                provider.name()
+        );
     }
     private int getPriority(NotificationProvider provider) {
         NotificationProviderProperties.ProviderConfig config =
