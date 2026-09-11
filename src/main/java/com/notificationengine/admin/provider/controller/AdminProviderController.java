@@ -91,7 +91,7 @@ public class AdminProviderController {
                         .findFirst()
                         .orElseThrow(() ->
                                 new IllegalStateException(
-                                        "No provider implementation found for: "
+                                         "No provider implementation found for: "
                                                 + state.getProvider()
                                 )
                         );
