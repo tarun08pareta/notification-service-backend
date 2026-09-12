@@ -1,9 +1,13 @@
 package com.notificationengine.admin.provider.service;
 
 import com.notificationengine.admin.provider.domain.ProviderState;
+import com.notificationengine.admin.provider.dto.response.AdminProviderHealthResponse;
 import com.notificationengine.admin.provider.repository.ProviderStateRepository;
+import com.notificationengine.notification.domain.DeliveryAttempt;
+import com.notificationengine.notification.domain.DeliveryAttemptStatus;
 import com.notificationengine.notification.provider.ProviderStateResolver;
 import com.notificationengine.notification.provider.config.NotificationProviderProperties;
+import com.notificationengine.notification.repository.DeliveryAttemptRepository;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -17,13 +21,17 @@ public class AdminProviderService
 
     private final ProviderStateRepository providerStateRepository;
     private final NotificationProviderProperties properties;
+    private final DeliveryAttemptRepository deliveryAttemptRepository;
 
     public AdminProviderService(
             ProviderStateRepository providerStateRepository,
-            NotificationProviderProperties properties) {
+            NotificationProviderProperties properties,
+            DeliveryAttemptRepository deliveryAttemptRepository
+    ) {
 
         this.providerStateRepository = providerStateRepository;
         this.properties = properties;
+        this.deliveryAttemptRepository = deliveryAttemptRepository;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -189,5 +197,55 @@ public class AdminProviderService
                     "Unknown provider: " + providerName
             );
         }
+    }
+
+    // UPDATED: Builds provider health from persisted delivery attempt history.
+    @Transactional(readOnly = true)
+    public AdminProviderHealthResponse getProviderHealth(
+            String providerName
+    ) {
+
+        DeliveryAttempt latestAttempt =
+                deliveryAttemptRepository
+                        .findTopByProviderOrderByStartedAtDesc(providerName)
+                        .orElse(null);
+
+        DeliveryAttempt latestSuccess =
+                deliveryAttemptRepository
+                        .findTopByProviderAndStatusOrderByStartedAtDesc(
+                                providerName,
+                                DeliveryAttemptStatus.SUCCESS
+                        )
+                        .orElse(null);
+
+        DeliveryAttempt latestFailure =
+                deliveryAttemptRepository
+                        .findTopByProviderAndStatusOrderByStartedAtDesc(
+                                providerName,
+                                DeliveryAttemptStatus.FAILED
+                        )
+                        .orElse(null);
+
+        return new AdminProviderHealthResponse(
+                latestAttempt != null
+                        ? latestAttempt.getStartedAt()
+                        : null,
+
+                latestSuccess != null
+                        ? latestSuccess.getCompletedAt()
+                        : null,
+
+                latestFailure != null
+                        ? latestFailure.getCompletedAt()
+                        : null,
+
+                latestFailure != null
+                        ? latestFailure.getErrorCode()
+                        : null,
+
+                latestFailure != null
+                        ? latestFailure.getErrorMessage()
+                        : null
+        );
     }
 }

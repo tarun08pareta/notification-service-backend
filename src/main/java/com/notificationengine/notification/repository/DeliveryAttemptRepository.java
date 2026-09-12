@@ -1,6 +1,7 @@
 package com.notificationengine.notification.repository;
 
 import com.notificationengine.notification.domain.DeliveryAttempt;
+import com.notificationengine.notification.domain.DeliveryAttemptStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -12,10 +13,21 @@ public interface DeliveryAttemptRepository extends JpaRepository<DeliveryAttempt
     List<DeliveryAttempt> findByNotificationIdOrderByAttemptNumberAsc(
             UUID notificationId
     );
+
     Optional<DeliveryAttempt> findTopByNotificationIdOrderByAttemptNumberAsc(
             UUID notificationId
     );
+
     Optional<DeliveryAttempt> findTopByNotificationIdOrderByAttemptNumberDesc(
             UUID notificationId
+    );
+
+    Optional<DeliveryAttempt>
+    findTopByProviderOrderByStartedAtDesc(String provider);
+
+    Optional<DeliveryAttempt>
+    findTopByProviderAndStatusOrderByStartedAtDesc(
+            String provider,
+            DeliveryAttemptStatus status
     );
 }
