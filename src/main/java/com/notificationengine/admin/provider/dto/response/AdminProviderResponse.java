@@ -14,6 +14,8 @@ public class AdminProviderResponse {
     private List<String> channels;
     private int priority;
 
+    private AdminProviderHealthResponse healthResponse;
+
     public AdminProviderResponse() {
     }
 
@@ -21,11 +23,13 @@ public class AdminProviderResponse {
             String name,
             boolean enabled,
             int priority,
-            List<String> channels
+            List<String> channels,
+            AdminProviderHealthResponse healthResponse
     ) {
         this.name = name;
         this.enabled = enabled;
         this.priority = priority;
         this.channels =channels;
+        this.healthResponse = healthResponse;
     }
 }

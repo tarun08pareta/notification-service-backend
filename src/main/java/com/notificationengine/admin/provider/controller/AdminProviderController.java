@@ -22,6 +22,7 @@ public class AdminProviderController {
     private final NotificationProviderProperties properties;
     private final List<NotificationProvider> providers;
 
+
     public AdminProviderController(
             AdminProviderService adminProviderService,
             NotificationProviderProperties properties,
@@ -105,7 +106,10 @@ public class AdminProviderController {
                         .stream()
                         .map(Enum::name)
                         .sorted()
-                        .toList()
+                        .toList(),
+                adminProviderService.getProviderHealth(
+                        state.getProvider()
+                )
         );
     }
 }
