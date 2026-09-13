@@ -7,6 +7,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.security.config.Customizer;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -27,8 +28,9 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ApiTokenAuthenticationFilter apiTokenAuthenticationFilter;  // for api run token
+
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
@@ -54,7 +56,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Signup must be accessible without login.
                         .requestMatchers("/api/v1/user",
-                                "/api/v1/auth/login","/api/v1/api-tokens/**").permitAll()
+                                "/api/v1/auth/login").permitAll()
                         .requestMatchers("/api/v1/admin/**")
                         .hasRole("ADMIN")
                         // Everything else will require authentication for now.
@@ -71,6 +73,7 @@ public class SecurityConfig {
 
         return http.build();
     }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 

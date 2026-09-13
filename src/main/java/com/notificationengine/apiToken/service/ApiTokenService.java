@@ -69,36 +69,13 @@ public class ApiTokenService {
         );
     }
 
-    private String sha256(String value) {
-
-        try {
-
-            MessageDigest digest =
-                    MessageDigest.getInstance("SHA-256");
-
-            byte[] hash =
-                    digest.digest(
-                            value.getBytes(StandardCharsets.UTF_8)
-                    );
-
-            return HexFormat.of()
-                    .formatHex(hash);
-
-        } catch (NoSuchAlgorithmException exception) {
-
-            throw new IllegalStateException(
-                    "SHA-256 algorithm is not available",
-                    exception
-            );
-        }
-    }
-
 
     //token listing
     @Transactional(readOnly = true)
     public List<ApiTokenListResponse> getUserTokens(UUID userId){
+        Instant now = Instant.now();
         List<ApiTokenListResponse> list = apiTokenRepository
-                .findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtDesc(userId)
+                .findActiveTokensByUserId(userId,now)
                 .stream()
                 .map(apiToken ->
                         new ApiTokenListResponse(

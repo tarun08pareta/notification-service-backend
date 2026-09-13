@@ -25,7 +25,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ApiTokenAuthenticationFilter extends OncePerRequestFilter {
     private static final String API_KEY_HEADER = "X-API-Key";
-
+   //only allow for notification
+   private static final String NOTIFICATION_ENDPOINT =
+           "/api/v1/notifications";
     private final ApiTokenRepository apiTokenRepository;
     private final ApiTokenHasher apiTokenHasher;
     private final ApiTokenService apiTokenService;
@@ -36,10 +38,49 @@ public class ApiTokenAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+
+        // API tokens are intentionally allowed only for notification creation.
+//        if (!"POST".equalsIgnoreCase(request.getMethod())
+//                || !NOTIFICATION_ENDPOINT.equals(request.getRequestURI())) {
+//
+//            filterChain.doFilter(request, response);
+//            return;
+//        }
+        //  API-key authentication is allowed only for notification creation.
+        boolean notificationRequest =
+                "POST".equalsIgnoreCase(
+                        request.getMethod()
+                )
+                        && NOTIFICATION_ENDPOINT.equals(
+                        request.getRequestURI()
+                );
+
+        if (!notificationRequest) {
+            filterChain.doFilter(
+                    request,
+                    response
+            );
+            return;
+        }
         String header = request.getHeader(API_KEY_HEADER);
 
         if (header == null || header.isBlank()) {
             filterChain.doFilter(request, response);
+            return;
+        }
+
+        //  Reject requests that provide both JWT and API key credentials.
+        String authorizationHeader =
+                request.getHeader("Authorization");
+
+        if (authorizationHeader != null
+                && !authorizationHeader.isBlank()) {
+
+            response.sendError(
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "Use only one authentication mechanism per request"
+            );
+
             return;
         }
 
@@ -60,10 +101,15 @@ public class ApiTokenAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
+            //  Treat a token as expired when expiresAt is equal to or before now.
             if (apiToken.getExpiresAt() != null
-                    && apiToken.getExpiresAt().isBefore(Instant.now())) {
+                    && !apiToken.getExpiresAt()
+                    .isAfter(Instant.now())) {
 
-                filterChain.doFilter(request, response);
+                filterChain.doFilter(
+                        request,
+                        response
+                );
                 return;
             }
             apiTokenService.markAsUsed(apiToken);
