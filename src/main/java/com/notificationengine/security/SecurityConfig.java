@@ -26,6 +26,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ApiTokenAuthenticationFilter apiTokenAuthenticationFilter;  // for api run token
     @Bean
     public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
@@ -53,7 +54,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Signup must be accessible without login.
                         .requestMatchers("/api/v1/user",
-                                "/api/v1/auth/login").permitAll()
+                                "/api/v1/auth/login","/api/v1/api-tokens/**").permitAll()
                         .requestMatchers("/api/v1/admin/**")
                         .hasRole("ADMIN")
                         // Everything else will require authentication for now.
@@ -62,6 +63,10 @@ public class SecurityConfig {
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
+                )
+                .addFilterBefore(
+                        apiTokenAuthenticationFilter,
+                        JwtAuthenticationFilter.class
                 );
 
         return http.build();
