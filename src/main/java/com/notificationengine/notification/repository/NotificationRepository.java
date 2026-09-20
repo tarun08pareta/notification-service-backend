@@ -2,7 +2,10 @@ package com.notificationengine.notification.repository;
 
 import com.notificationengine.notification.domain.Notification;
 import com.notificationengine.notification.domain.NotificationStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,7 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface NotificationRepository extends JpaRepository<Notification, UUID> {
+public interface NotificationRepository extends JpaRepository<Notification, UUID>, JpaSpecificationExecutor<Notification> {
     List<Notification> findByStatusAndNextRetryAtLessThanEqual(
             NotificationStatus status,
             OffsetDateTime now
@@ -42,5 +45,6 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
             UUID userId
     );
 
-
+    //  Provides paginated notification listing for admin monitoring.
+    Page<Notification> findAllByOrderByCreatedAtDesc(Pageable pageable);
 }
