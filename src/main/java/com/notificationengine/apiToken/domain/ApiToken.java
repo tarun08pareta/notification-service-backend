@@ -38,7 +38,7 @@ public class ApiToken {
         @Column(name = "token_prefix", nullable = false, length = 30)
         private String tokenPrefix;
 
-        @Column(name = "token_hash", nullable = false, unique = true, length = 64)
+        @Column(name = "token_hash", nullable = false, unique = true, length = 255)
         private String tokenHash;
 
         @Column(name = "expires_at")

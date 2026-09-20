@@ -4,7 +4,7 @@ CREATE TABLE api_tokens
     user_id      UUID                     NOT NULL,
     name         VARCHAR(100)             NOT NULL,
     token_prefix VARCHAR(30)              NOT NULL,
-    token_hash   VARCHAR(64)              NOT NULL UNIQUE,
+    token_hash   VARCHAR(255)              NOT NULL UNIQUE,
     expires_at   TIMESTAMP WITH TIME ZONE,
     revoked_at   TIMESTAMP WITH TIME ZONE,
     created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
