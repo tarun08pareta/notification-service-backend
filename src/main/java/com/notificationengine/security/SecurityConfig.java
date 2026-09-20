@@ -27,7 +27,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final ApiTokenAuthenticationFilter apiTokenAuthenticationFilter;  // for api run token
+    private final ApiTokenAuthenticationFilter apiTokenAuthenticationFilter;
+    private final GoogleOAuth2SuccessHandler googleOAuth2SuccessHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -38,7 +39,6 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration configuration
     ) throws Exception {
-
         return configuration.getAuthenticationManager();
     }
 
@@ -54,14 +54,23 @@ public class SecurityConfig {
                         )
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // Signup must be accessible without login.
-                        .requestMatchers("/api/v1/user",
-                                "/api/v1/auth/login").permitAll()
+                        // Public endpoints — no JWT required.
+                        .requestMatchers(
+                                "/api/v1/user",
+                                "/api/v1/auth/login",
+                                // Google OAuth2 one-time code exchange.
+                                // Must be public: the caller has no application JWT yet.
+                                "/api/v1/auth/google/login",
+                                "/oauth2/**",
+                                "/login/oauth2/**"
+                        ).permitAll()
                         .requestMatchers("/api/v1/admin/**")
                         .hasRole("ADMIN")
-                        // Everything else will require authentication for now.
+                        // Everything else requires authentication.
                         .anyRequest().authenticated()
                 )
+                .oauth2Login(oauth2 ->
+                        oauth2.successHandler(googleOAuth2SuccessHandler))
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
@@ -111,4 +120,3 @@ public class SecurityConfig {
         return source;
     }
 }
-
