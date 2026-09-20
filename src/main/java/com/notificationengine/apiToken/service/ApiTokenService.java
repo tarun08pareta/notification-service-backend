@@ -30,7 +30,7 @@ public class ApiTokenService {
     private final SecureRandom secureRandom = new SecureRandom();
 
     private final ApiTokenHasher apiTokenHasher;
-
+    private final ApiTokenEncryptor apiTokenEncryptor;
     @Transactional
     public ApiTokenCreateResponse createToken(
             User user,
@@ -43,8 +43,11 @@ public class ApiTokenService {
 
         String fullToken = TOKEN_PREFIX + secret;
 
-//        String tokenHash = sha256(fullToken);
-        String tokenHash = apiTokenHasher.hash(fullToken);
+//       has one way when user create then show only one time
+//        String tokenHash = apiTokenHasher.hash(fullToken);
+
+        // approch when user then show multiple time
+        String encryptedToken = apiTokenEncryptor.encrypt(fullToken);
         String tokenPrefix = fullToken.substring(
                 0,
                 Math.min(fullToken.length(), 16)
@@ -54,7 +57,8 @@ public class ApiTokenService {
         apiToken.setUser(user);
         apiToken.setName(request.getName());
         apiToken.setTokenPrefix(tokenPrefix);
-        apiToken.setTokenHash(tokenHash);
+//        apiToken.setTokenHash(tokenHash);
+        apiToken.setTokenHash(encryptedToken);
         apiToken.setCreatedAt(Instant.now());
 
         ApiToken savedToken =
@@ -75,18 +79,39 @@ public class ApiTokenService {
     public List<ApiTokenListResponse> getUserTokens(UUID userId){
         Instant now = Instant.now();
         List<ApiTokenListResponse> list = apiTokenRepository
-                .findActiveTokensByUserId(userId,now)
+//                .findActiveTokensByUserId(userId,now)   // not include revoked token
+                .findAllByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(apiToken ->
-                        new ApiTokenListResponse(
-                                apiToken.getId(),
-                                apiToken.getName(),
-                                apiToken.getTokenPrefix(),
-                                apiToken.getCreatedAt(),
-                                apiToken.getLastUsedAt(),
-                                apiToken.getExpiresAt(),
-                                apiToken.getRevokedAt()
-                        )
+
+                        // for hash
+
+//                        new ApiTokenListResponse(
+//                                apiToken.getId(),
+//                                apiToken.getName(),
+//                                apiToken.getTokenPrefix(),
+//                                apiToken.getCreatedAt(),
+//                                apiToken.getLastUsedAt(),
+//                                apiToken.getExpiresAt(),
+//                                apiToken.getRevokedAt()
+//                        )
+
+                        // for encrept or decrept
+                        {
+                            // Database se encrypted token nikal kar decrypt kar rahe hain
+                            String decryptedFullToken = apiTokenEncryptor.decrypt(apiToken.getTokenHash());
+
+                            return new ApiTokenListResponse(
+                                    apiToken.getId(),
+                                    apiToken.getName(),
+                                    decryptedFullToken,
+                                    apiToken.getTokenPrefix(),
+                                    apiToken.getCreatedAt(),
+                                    apiToken.getLastUsedAt(),
+                                    apiToken.getExpiresAt(),
+                                    apiToken.getRevokedAt()
+                            );
+                        }
                 )
                 .toList();
         return list;

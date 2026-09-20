@@ -45,4 +45,6 @@ public interface ApiTokenRepository extends JpaRepository<ApiToken , UUID> {
             @Param("now") Instant now
     );
 
+    // all token
+    List<ApiToken> findAllByUserIdOrderByCreatedAtDesc(UUID userId);
 }

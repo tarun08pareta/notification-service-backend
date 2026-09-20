@@ -12,6 +12,7 @@ public class ApiTokenListResponse {
     private UUID id;
     private String name;
     private String tokenPrefix;
+    private String token;
     private Instant createdAt;
     private Instant lastUsedAt;
     private Instant expiresAt;
@@ -20,6 +21,7 @@ public class ApiTokenListResponse {
     public ApiTokenListResponse(
             UUID id,
             String name,
+            String token,
             String tokenPrefix,
             Instant createdAt,
             Instant lastUsedAt,
@@ -28,6 +30,7 @@ public class ApiTokenListResponse {
     ) {
         this.id = id;
         this.name = name;
+        this.token = token;
         this.tokenPrefix = tokenPrefix;
         this.createdAt = createdAt;
         this.lastUsedAt = lastUsedAt;
