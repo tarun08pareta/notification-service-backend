@@ -3,6 +3,9 @@ package com.notificationengine.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -58,8 +61,6 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/v1/user",
                                 "/api/v1/auth/login",
-                                // Google OAuth2 one-time code exchange.
-                                // Must be public: the caller has no application JWT yet.
                                 "/api/v1/auth/google/login",
                                 "/oauth2/**",
                                 "/login/oauth2/**"
@@ -69,6 +70,17 @@ public class SecurityConfig {
                         // Everything else requires authentication.
                         .anyRequest().authenticated()
                 )
+                //  API clients must receive HTTP 401 instead of being
+// redirected to the Google OAuth login page.
+                .exceptionHandling(exception -> {
+                    RequestMatcher apiRequestMatcher =
+                            request -> request.getRequestURI().startsWith("/api/");
+
+                    exception.defaultAuthenticationEntryPointFor(
+                            new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                            apiRequestMatcher
+                    );
+                })
                 .oauth2Login(oauth2 ->
                         oauth2.successHandler(googleOAuth2SuccessHandler))
                 .addFilterBefore(

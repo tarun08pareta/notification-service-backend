@@ -11,9 +11,9 @@ public class ProviderStateUpdateRequest {
     @NotNull
     private Boolean enabled;
 
-    @NotNull
-    @Min(0)
-    private Integer priority;
+//    @NotNull
+//    @Min(0)
+//    private Integer priority;
 //    public ProviderStateUpdateRequest() {
 //    }
 
