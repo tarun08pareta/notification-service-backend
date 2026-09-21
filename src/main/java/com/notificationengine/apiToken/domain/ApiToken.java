@@ -41,6 +41,15 @@ public class ApiToken {
         @Column(name = "token_hash", nullable = false, unique = true, length = 255)
         private String tokenHash;
 
+        // add new column
+        @Column(
+                name = "encrypted_token",
+                nullable = false,
+                unique = true,
+                length = 1024
+        )
+        private String encryptedToken;
+
         @Column(name = "expires_at")
         private Instant expiresAt;
 

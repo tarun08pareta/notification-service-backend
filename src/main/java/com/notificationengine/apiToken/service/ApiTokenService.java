@@ -44,9 +44,10 @@ public class ApiTokenService {
         String fullToken = TOKEN_PREFIX + secret;
 
 //       has one way when user create then show only one time
-//        String tokenHash = apiTokenHasher.hash(fullToken);
+        String tokenHash = apiTokenHasher.hash(fullToken);
 
         // approch when user then show multiple time
+        // must be recoverable for the user's token-management screen.
         String encryptedToken = apiTokenEncryptor.encrypt(fullToken);
         String tokenPrefix = fullToken.substring(
                 0,
@@ -57,8 +58,8 @@ public class ApiTokenService {
         apiToken.setUser(user);
         apiToken.setName(request.getName());
         apiToken.setTokenPrefix(tokenPrefix);
-//        apiToken.setTokenHash(tokenHash);
-        apiToken.setTokenHash(encryptedToken);
+        apiToken.setTokenHash(tokenHash);  // tokenHash is used only for authentication lookup.
+        apiToken.setEncryptedToken(encryptedToken);
         apiToken.setCreatedAt(Instant.now());
 
         ApiToken savedToken =
@@ -77,7 +78,7 @@ public class ApiTokenService {
     //token listing
     @Transactional(readOnly = true)
     public List<ApiTokenListResponse> getUserTokens(UUID userId){
-        Instant now = Instant.now();
+//        Instant now = Instant.now();
         List<ApiTokenListResponse> list = apiTokenRepository
 //                .findActiveTokensByUserId(userId,now)   // not include revoked token
                 .findAllByUserIdOrderByCreatedAtDesc(userId)
@@ -99,8 +100,10 @@ public class ApiTokenService {
                         // for encrept or decrept
                         {
                             // Database se encrypted token nikal kar decrypt kar rahe hain
-                            String decryptedFullToken = apiTokenEncryptor.decrypt(apiToken.getTokenHash());
-
+                            String decryptedFullToken =
+                                    apiTokenEncryptor.decrypt(
+                                            apiToken.getEncryptedToken()
+                                    );
                             return new ApiTokenListResponse(
                                     apiToken.getId(),
                                     apiToken.getName(),
