@@ -39,6 +39,12 @@ public class Notification {
     @Column(columnDefinition = "jsonb")
     private Map<String, String> variables;
 
+    //new column
+    // UPDATED:
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "advanced_variables", columnDefinition = "jsonb")
+    private Map<String, String> advancedVariables;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private NotificationStatus status;

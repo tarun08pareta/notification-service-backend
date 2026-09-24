@@ -21,7 +21,7 @@ public class NotificationRequest {
     @NotBlank
     private String template;
     private Map<String,String> variables;
-
+    private Map<String, String> advancedVariables;
 
 
 }
