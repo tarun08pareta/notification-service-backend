@@ -114,6 +114,13 @@ public class DeliveryProcessor {
         try {
             result = provider.send(notification);
         } catch (Exception ex) {
+            log.error(
+                    "Provider execution failed: notificationId={}, provider={}, error={}",
+                    notification.getId(),
+                    provider.name(),
+                    ex.getMessage(),
+                    ex
+            );
             result = ProviderResult.transientFailure(
                     "PROVIDER_EXCEPTION",
                     ex.getMessage()

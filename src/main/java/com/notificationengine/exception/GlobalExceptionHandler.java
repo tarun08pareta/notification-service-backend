@@ -1,5 +1,6 @@
 package com.notificationengine.exception;
 
+import com.notificationengine.admin.emailtemplate.exception.EmailTemplateNotFoundException;
 import com.notificationengine.notification.exception.IdempotencyConflictException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -118,5 +119,25 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(response);
+    }
+
+    //  Email template not-found errors now return HTTP 404.
+    @ExceptionHandler(EmailTemplateNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleEmailTemplateNotFound(
+            EmailTemplateNotFoundException exception,
+            HttpServletRequest request
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(
+                        new ApiErrorResponse(
+                                Instant.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                "Not Found",
+                                exception.getMessage(),
+                                request.getRequestURI()
+                        )
+                );
     }
 }

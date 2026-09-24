@@ -19,6 +19,10 @@ public class NotificationMapper {
         notification.setTemplate(request.getTemplate());
         notification.setRecipient(request.getRecipient());
         notification.setVariables(request.getVariables());
+        // UPDATED:
+        notification.setAdvancedVariables(
+                request.getAdvancedVariables()
+        );
 
         return notification;
     }
