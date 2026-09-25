@@ -2,6 +2,8 @@ package com.notificationengine.admin.emailtemplate.service;
 
 import com.notificationengine.admin.emailtemplate.domain.EmailTemplate;
 import com.notificationengine.admin.emailtemplate.domain.EmailTemplateStatus;
+import com.notificationengine.admin.emailtemplate.domain.EmailTemplateVariable;
+import com.notificationengine.admin.emailtemplate.domain.EmailTemplateVariableSource;
 import com.notificationengine.admin.emailtemplate.dto.request.CreateEmailTemplateRequest;
 import com.notificationengine.admin.emailtemplate.dto.request.UpdateEmailTemplateRequest;
 import com.notificationengine.admin.emailtemplate.dto.request.UpdateEmailTemplateStatusRequest;
@@ -17,7 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -65,15 +67,24 @@ public class EmailTemplateService {
         template.setName(request.getName().trim());
         template.setSubject(request.getSubject().trim());
         template.setHtmlBody(request.getHtmlBody().trim());
-        template.setTextBody(request.getTextBody().trim());
+//        template.setTextBody(request.getTextBody().trim());
+        template.setTextBody(
+                request.getTextBody() == null
+                        ? null
+                        : request.getTextBody().trim()
+        );
         template.setStatus(EmailTemplateStatus.ACTIVE);
+
         template.setVersion(1);
+//        template.setVariables(
+//                emailTemplateVariableExtractor.extract(
+//                        template.getSubject(),
+//                        template.getHtmlBody(),
+//                        template.getTextBody()
+//                )
+//        );
         template.setVariables(
-                emailTemplateVariableExtractor.extract(
-                        template.getSubject(),
-                        template.getHtmlBody(),
-                        template.getTextBody()
-                )
+                normalizeVariables(request.getVariables())
         );
 
         try {
@@ -103,17 +114,25 @@ public class EmailTemplateService {
         template.setName(request.getName().trim());
         template.setSubject(request.getSubject().trim());
         template.setHtmlBody(request.getHtmlBody());
-        template.setTextBody(request.getTextBody());
-
-        // UPDATED: Increment template version whenever content changes.
+//        template.setTextBody(request.getTextBody());
+//  Plain text body is optional.
+        template.setTextBody(
+                request.getTextBody() == null
+                        ? null
+                        : request.getTextBody().trim()
+        );
+        //  Increment template version whenever content changes.
         template.setVersion(template.getVersion() + 1);
 
+//        template.setVariables(
+//                emailTemplateVariableExtractor.extract(
+//                        template.getSubject(),
+//                        template.getHtmlBody(),
+//                        template.getTextBody()
+//                )
+//        );
         template.setVariables(
-                emailTemplateVariableExtractor.extract(
-                        template.getSubject(),
-                        template.getHtmlBody(),
-                        template.getTextBody()
-                )
+                normalizeVariables(request.getVariables())
         );
 
         EmailTemplate saved =
@@ -218,5 +237,76 @@ public class EmailTemplateService {
                 page.isFirst(),
                 page.isLast()
         );
+    }
+
+
+    private List<EmailTemplateVariable> normalizeVariables(
+            List<EmailTemplateVariable> requestedVariables
+    ) {
+
+        Map<String, EmailTemplateVariable> variables =
+                new LinkedHashMap<>();
+
+        // UPDATED:
+        // These variables are available for every email template
+        // and cannot be removed from the backend.
+        variables.put(
+                "companyName",
+                new EmailTemplateVariable(
+                        "companyName",
+                        EmailTemplateVariableSource.COMPANY_PROFILE,
+                        true
+                )
+        );
+
+        variables.put(
+                "logoUrl",
+                new EmailTemplateVariable(
+                        "logoUrl",
+                        EmailTemplateVariableSource.COMPANY_PROFILE,
+                        false
+                )
+        );
+
+        if (requestedVariables == null) {
+            return new ArrayList<>(variables.values());
+        }
+
+        for (EmailTemplateVariable variable : requestedVariables) {
+
+            if (variable == null
+                    || variable.getKey() == null
+                    || variable.getKey().isBlank()) {
+                continue;
+            }
+
+            String key = variable.getKey().trim();
+
+            // UPDATED:
+            // advancedVariables is a reserved renderer placeholder
+            // and must never be stored as a normal template variable.
+            if ("advancedVariables".equals(key)) {
+                continue;
+            }
+
+            // UPDATED:
+            // Backend-owned company variables cannot be overridden
+            // by frontend values.
+            if ("companyName".equals(key)
+                    || "logoUrl".equals(key)) {
+                continue;
+            }
+
+            variables.putIfAbsent(
+                    key,
+                    new EmailTemplateVariable(
+                            key,
+                            variable.getSource(),
+                            variable.isRequired()
+                    )
+            );
+        }
+
+        return new ArrayList<>(variables.values());
     }
 }

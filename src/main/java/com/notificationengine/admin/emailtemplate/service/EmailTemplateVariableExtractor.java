@@ -31,6 +31,24 @@ public class EmailTemplateVariableExtractor {
         Map<String, EmailTemplateVariable> variables =
                 new LinkedHashMap<>();
 
+        // for every email template.
+        variables.put(
+                "companyName",
+                new EmailTemplateVariable(
+                        "companyName",
+                        EmailTemplateVariableSource.COMPANY_PROFILE,
+                        true
+                )
+        );
+
+        variables.put(
+                "logoUrl",
+                new EmailTemplateVariable(
+                        "logoUrl",
+                        EmailTemplateVariableSource.COMPANY_PROFILE,
+                        false
+                )
+        );
         extractFromText(subject, variables);
         extractFromText(htmlBody, variables);
         extractFromText(textBody, variables);
@@ -109,5 +127,28 @@ public class EmailTemplateVariableExtractor {
             default ->
                     true;
         };
+    }
+
+    public List<EmailTemplateVariable> getDefaultVariables() {
+
+        List<EmailTemplateVariable> variables = new ArrayList<>();
+
+        variables.add(
+                new EmailTemplateVariable(
+                        "companyName",
+                        EmailTemplateVariableSource.COMPANY_PROFILE,
+                        true
+                )
+        );
+
+        variables.add(
+                new EmailTemplateVariable(
+                        "logoUrl",
+                        EmailTemplateVariableSource.COMPANY_PROFILE,
+                        false
+                )
+        );
+
+        return variables;
     }
 }
