@@ -30,8 +30,8 @@ public class CompanyProfileService {
         User user = getUserByEmail(email);
 
         return companyProfileRepository.findByUserId(user.getId())
-                .map(this::toResponse) // Agar profile hai, toh response banaye
-                .orElseGet(CompanyProfileResponse::new); // Agar nahi hai, toh empty object bhej de
+                .map(this::toResponse)
+                .orElseGet(CompanyProfileResponse::new);
     }
 
     @Transactional
