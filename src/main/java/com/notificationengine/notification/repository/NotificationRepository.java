@@ -47,4 +47,10 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
 
     //  Provides paginated notification listing for admin monitoring.
     Page<Notification> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    // UPDATED: Returns notifications belonging only to the authenticated user.
+    Page<Notification> findByUserIdOrderByCreatedAtDesc(
+            UUID userId,
+            Pageable pageable
+    );
 }

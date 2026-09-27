@@ -5,6 +5,8 @@ import com.notificationengine.notification.domain.NotificationChannel;
 import com.notificationengine.notification.domain.NotificationStatus;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.util.UUID;
+
 public final class NotificationSpecification {
 
     private NotificationSpecification() {
@@ -29,6 +31,17 @@ public final class NotificationSpecification {
                 criteriaBuilder.equal(
                         root.get("channel"),
                         channel
+                );
+    }
+
+    // Restricts notifications to one authenticated user.
+    public static Specification<Notification> hasUserId(
+            UUID userId
+    ) {
+        return (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(
+                        root.get("userId"),
+                        userId
                 );
     }
 }
