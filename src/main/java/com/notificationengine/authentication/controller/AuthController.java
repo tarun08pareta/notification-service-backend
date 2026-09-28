@@ -1,13 +1,11 @@
 package com.notificationengine.authentication.controller;
 
-import com.notificationengine.authentication.dto.LoginRequest;
-import com.notificationengine.authentication.dto.LoginResponse;
-import com.notificationengine.authentication.dto.OAuth2ExchangeRequest;
+import com.notificationengine.authentication.dto.*;
 import com.notificationengine.authentication.oauth2.OAuth2ExchangeCodeStore;
 import com.notificationengine.authentication.oauth2.OAuth2ExchangeEntry;
+import com.notificationengine.security.AuthenticatedUserService;
 import com.notificationengine.security.CustomUserDetailsService;
 import com.notificationengine.security.JwtService;
-import com.notificationengine.authentication.dto.LoginUserResponse;
 import com.notificationengine.authentication.service.AuthService;
 import com.notificationengine.user.domain.User;
 import com.notificationengine.user.repository.UserRepository;
@@ -15,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,6 +22,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -36,6 +37,7 @@ public class AuthController {
     private final UserRepository userRepository;
     private final CustomUserDetailsService userDetailsService;
     private final JwtService jwtService;
+    private final AuthenticatedUserService authenticatedUserService;
 
     /**
      * Existing email/password login — unchanged.
@@ -91,5 +93,32 @@ public class AuthController {
         );
 
         return ResponseEntity.ok(loginResponse);
+    }
+
+
+    @PostMapping("/change-password")
+    public ResponseEntity<Void> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+
+        UUID userId =
+                authenticatedUserService
+                        .getCurrentUser()
+                        .getId();
+
+        authService.changePassword(
+                userId,
+                request
+        );
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout() {
+
+        // JWT authentication is stateless.
+        // Actual token removal is handled by the client.
+        return ResponseEntity.noContent().build();
     }
 }
